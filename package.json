@@ -1,0 +1,19 @@
+{
+  "devDependencies": {
+    "husky": "^9.1.7",
+    "lint-staged": "^17.5.1",
+    "prettier": "^3.9.8"
+  },
+ "lint-staged": {
+  "frontend/src/**/*.{js,jsx,css}": [
+    "prettier --write",
+    "frontend/node_modules/.bin/eslint --fix"
+  ]
+},
+  "scripts": {
+    "prepare": "husky",
+    "lint": "cd frontend && npm run lint",
+    "format": "prettier --write frontend/src",
+    "format:check": "prettier --check frontend/src"
+}
+}

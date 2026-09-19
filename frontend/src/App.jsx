@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import axios from "axios";
+
 import MapView from "./MapView";
 import SiteAnalytics from "./SiteAnalytics";
 
@@ -30,18 +31,17 @@ function App() {
 
   const [message, setMessage] = useState("");
 
-  const token = localStorage.getItem("access_token");
+  const getAuthHeaders = () => {
+    const token = localStorage.getItem("access_token");
 
-  const api = axios.create({
-    baseURL: API,
-    headers: {
+    return {
       Authorization: `Bearer ${token}`,
-    },
-  });
+    };
+  };
 
   // LOGIN
-  const login = async (e) => {
-    e.preventDefault();
+  const login = async (event) => {
+    event.preventDefault();
     setMessage("");
 
     try {
@@ -50,23 +50,18 @@ function App() {
         password,
       });
 
-      localStorage.setItem(
-        "access_token",
-        response.data.access_token
-      );
+      localStorage.setItem("access_token", response.data.access_token);
 
       setLoggedIn(true);
       setMessage("Login successful!");
     } catch (error) {
-      setMessage(
-        error.response?.data?.detail || "Login failed"
-      );
+      setMessage(error.response?.data?.detail || "Login failed");
     }
   };
 
   // REGISTER
-  const register = async (e) => {
-    e.preventDefault();
+  const register = async (event) => {
+    event.preventDefault();
     setMessage("");
 
     try {
@@ -76,43 +71,34 @@ function App() {
         password,
       });
 
-      setMessage(
-        "Registration successful! Please login."
-      );
+      setMessage("Registration successful! Please login.");
 
       setShowRegister(false);
       setUserName("");
       setEmail("");
       setPassword("");
     } catch (error) {
-      setMessage(
-        error.response?.data?.detail ||
-          "Registration failed"
-      );
-    }
-  };
-
-  // LOAD PROJECTS
-  const loadProjects = async () => {
-    try {
-      const response = await api.get("/projects/");
-      setProjects(response.data);
-    } catch (error) {
-      console.error(error);
+      setMessage(error.response?.data?.detail || "Registration failed");
     }
   };
 
   // CREATE PROJECT
-  const createProject = async (e) => {
-    e.preventDefault();
+  const createProject = async (event) => {
+    event.preventDefault();
     setMessage("");
 
     try {
-      await api.post("/projects/", {
-        name,
-        description,
-        project_type: projectType,
-      });
+      await axios.post(
+        `${API}/projects/`,
+        {
+          name,
+          description,
+          project_type: projectType,
+        },
+        {
+          headers: getAuthHeaders(),
+        }
+      );
 
       setName("");
       setDescription("");
@@ -120,24 +106,27 @@ function App() {
 
       setMessage("Project created successfully!");
 
-      loadProjects();
+      // Reload projects after creating one.
+      const response = await axios.get(`${API}/projects/`, {
+        headers: getAuthHeaders(),
+      });
+
+      setProjects(response.data);
     } catch (error) {
-      setMessage(
-        error.response?.data?.detail ||
-          "Could not create project"
-      );
+      setMessage(error.response?.data?.detail || "Could not create project");
     }
   };
 
   // OPEN PROJECT
   const openProject = async (project) => {
     setSelectedProject(project);
+    setSelectedSite(null);
     setMessage("");
 
     try {
-      const response = await api.get(
-        `/projects/${project.id}/sites/`
-      );
+      const response = await axios.get(`${API}/projects/${project.id}/sites/`, {
+        headers: getAuthHeaders(),
+      });
 
       setSites(response.data);
     } catch (error) {
@@ -148,7 +137,7 @@ function App() {
 
   // CREATE SITE
   const createSite = async () => {
-    if (!siteName) {
+    if (!siteName.trim()) {
       setMessage("Enter a site name first.");
       return;
     }
@@ -158,25 +147,31 @@ function App() {
       return;
     }
 
+    if (!selectedProject) {
+      setMessage("No project selected.");
+      return;
+    }
+
     try {
-      const response = await api.post(
-        `/projects/${selectedProject.id}/sites/`,
+      const response = await axios.post(
+        `${API}/projects/${selectedProject.id}/sites/`,
         {
           name: siteName,
           geometry: polygon,
+        },
+        {
+          headers: getAuthHeaders(),
         }
       );
 
-      setSites([...sites, response.data]);
+      setSites((currentSites) => [...currentSites, response.data]);
+
       setSiteName("");
       setPolygon(null);
 
       setMessage("Site created successfully!");
     } catch (error) {
-      setMessage(
-        error.response?.data?.detail ||
-          "Could not create site"
-      );
+      setMessage(error.response?.data?.detail || "Could not create site");
     }
   };
 
@@ -188,12 +183,35 @@ function App() {
     setProjects([]);
     setSelectedProject(null);
     setSelectedSite(null);
+    setSites([]);
+    setPolygon(null);
+    setMessage("");
   };
 
+  // LOAD PROJECTS WHEN USER LOGS IN
   useEffect(() => {
-    if (loggedIn) {
-      loadProjects();
+    if (!loggedIn) {
+      return;
     }
+
+    const loadProjects = async () => {
+      try {
+        const response = await axios.get(`${API}/projects/`, {
+          headers: getAuthHeaders(),
+        });
+
+        setProjects(response.data);
+      } catch (error) {
+        console.error(error);
+
+        if (error.response?.status === 401) {
+          localStorage.removeItem("access_token");
+          setLoggedIn(false);
+        }
+      }
+    };
+
+    loadProjects();
   }, [loggedIn]);
 
   // AUTH SCREEN
@@ -203,9 +221,7 @@ function App() {
         <div style={authCard}>
           <h1>🌍 Darukaa.Earth</h1>
 
-          <p style={{ color: "#777" }}>
-            Carbon & Biodiversity Analytics
-          </p>
+          <p style={{ color: "#777" }}>Carbon & Biodiversity Analytics</p>
 
           {showRegister ? (
             <>
@@ -216,9 +232,7 @@ function App() {
                   style={inputStyle}
                   placeholder="Full name"
                   value={userName}
-                  onChange={(e) =>
-                    setUserName(e.target.value)
-                  }
+                  onChange={(event) => setUserName(event.target.value)}
                   required
                 />
 
@@ -227,9 +241,7 @@ function App() {
                   type="email"
                   placeholder="Email"
                   value={email}
-                  onChange={(e) =>
-                    setEmail(e.target.value)
-                  }
+                  onChange={(event) => setEmail(event.target.value)}
                   required
                 />
 
@@ -238,13 +250,11 @@ function App() {
                   type="password"
                   placeholder="Password"
                   value={password}
-                  onChange={(e) =>
-                    setPassword(e.target.value)
-                  }
+                  onChange={(event) => setPassword(event.target.value)}
                   required
                 />
 
-                <button style={primaryButton}>
+                <button type="submit" style={primaryButton}>
                   Create Account
                 </button>
               </form>
@@ -252,6 +262,7 @@ function App() {
               <p>
                 Already have an account?{" "}
                 <button
+                  type="button"
                   style={linkButton}
                   onClick={() => {
                     setShowRegister(false);
@@ -272,9 +283,7 @@ function App() {
                   type="email"
                   placeholder="Email"
                   value={email}
-                  onChange={(e) =>
-                    setEmail(e.target.value)
-                  }
+                  onChange={(event) => setEmail(event.target.value)}
                   required
                 />
 
@@ -283,13 +292,11 @@ function App() {
                   type="password"
                   placeholder="Password"
                   value={password}
-                  onChange={(e) =>
-                    setPassword(e.target.value)
-                  }
+                  onChange={(event) => setPassword(event.target.value)}
                   required
                 />
 
-                <button style={primaryButton}>
+                <button type="submit" style={primaryButton}>
                   Login
                 </button>
               </form>
@@ -297,6 +304,7 @@ function App() {
               <p>
                 Don't have an account?{" "}
                 <button
+                  type="button"
                   style={linkButton}
                   onClick={() => {
                     setShowRegister(true);
@@ -309,11 +317,7 @@ function App() {
             </>
           )}
 
-          {message && (
-            <p style={{ marginTop: "20px" }}>
-              {message}
-            </p>
-          )}
+          {message && <p style={{ marginTop: "20px" }}>{message}</p>}
         </div>
       </div>
     );
@@ -322,10 +326,7 @@ function App() {
   // SITE ANALYTICS
   if (selectedSite) {
     return (
-      <SiteAnalytics
-        site={selectedSite}
-        onBack={() => setSelectedSite(null)}
-      />
+      <SiteAnalytics site={selectedSite} onBack={() => setSelectedSite(null)} />
     );
   }
 
@@ -334,9 +335,13 @@ function App() {
     return (
       <div style={pageStyleWide}>
         <button
+          type="button"
           onClick={() => {
             setSelectedProject(null);
+            setSelectedSite(null);
             setSites([]);
+            setPolygon(null);
+            setMessage("");
           }}
         >
           ← Back to Projects
@@ -346,12 +351,10 @@ function App() {
           <div>
             <h1>{selectedProject.name}</h1>
 
-            <p>
-              {selectedProject.description}
-            </p>
+            <p>{selectedProject.description}</p>
           </div>
 
-          <button onClick={logout}>
+          <button type="button" onClick={logout}>
             Logout
           </button>
         </div>
@@ -361,9 +364,8 @@ function App() {
         <h2>Project Map</h2>
 
         <MapView
-          onPolygonCreated={(geometry) =>
-            setPolygon(geometry)
-          }
+          sites={sites}
+          onPolygonCreated={(geometry) => setPolygon(geometry)}
         />
 
         <div style={cardStyle}>
@@ -373,15 +375,10 @@ function App() {
             style={inputStyle}
             placeholder="Site name"
             value={siteName}
-            onChange={(e) =>
-              setSiteName(e.target.value)
-            }
+            onChange={(event) => setSiteName(event.target.value)}
           />
 
-          <button
-            style={primaryButton}
-            onClick={createSite}
-          >
+          <button type="button" style={primaryButton} onClick={createSite}>
             Save Site
           </button>
 
@@ -394,30 +391,19 @@ function App() {
           <p>No sites yet.</p>
         ) : (
           sites.map((site) => (
-            <div
-              key={site.id}
-              style={cardStyle}
-            >
+            <div key={site.id} style={cardStyle}>
               <h3>{site.name}</h3>
 
-              <p>
-                Site ID: {site.id}
-              </p>
+              <p>Site ID: {site.id}</p>
 
               <p>
                 Area:{" "}
                 {site.area
-                  ? `${(
-                      site.area / 10000
-                    ).toFixed(2)} hectares`
+                  ? `${(site.area / 10000).toFixed(2)} hectares`
                   : "N/A"}
               </p>
 
-              <button
-                onClick={() =>
-                  setSelectedSite(site)
-                }
-              >
+              <button type="button" onClick={() => setSelectedSite(site)}>
                 View Analytics
               </button>
             </div>
@@ -434,12 +420,10 @@ function App() {
         <div>
           <h1>🌍 Darukaa.Earth</h1>
 
-          <p>
-            Carbon & Biodiversity Analytics
-          </p>
+          <p>Carbon & Biodiversity Analytics</p>
         </div>
 
-        <button onClick={logout}>
+        <button type="button" onClick={logout}>
           Logout
         </button>
       </div>
@@ -452,9 +436,7 @@ function App() {
             style={inputStyle}
             placeholder="Project name"
             value={name}
-            onChange={(e) =>
-              setName(e.target.value)
-            }
+            onChange={(event) => setName(event.target.value)}
             required
           />
 
@@ -462,21 +444,17 @@ function App() {
             style={inputStyle}
             placeholder="Project description"
             value={description}
-            onChange={(e) =>
-              setDescription(e.target.value)
-            }
+            onChange={(event) => setDescription(event.target.value)}
           />
 
           <input
             style={inputStyle}
             placeholder="Project type"
             value={projectType}
-            onChange={(e) =>
-              setProjectType(e.target.value)
-            }
+            onChange={(event) => setProjectType(event.target.value)}
           />
 
-          <button style={primaryButton}>
+          <button type="submit" style={primaryButton}>
             Create Project
           </button>
         </form>
@@ -490,25 +468,14 @@ function App() {
         <p>No projects yet.</p>
       ) : (
         projects.map((project) => (
-          <div
-            key={project.id}
-            style={cardStyle}
-          >
+          <div key={project.id} style={cardStyle}>
             <h3>{project.name}</h3>
 
-            <p>
-              {project.description}
-            </p>
+            <p>{project.description}</p>
 
-            <p>
-              Type: {project.project_type}
-            </p>
+            <p>Type: {project.project_type}</p>
 
-            <button
-              onClick={() =>
-                openProject(project)
-              }
-            >
+            <button type="button" onClick={() => openProject(project)}>
               Open Project
             </button>
           </div>
