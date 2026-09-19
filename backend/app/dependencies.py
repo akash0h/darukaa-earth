@@ -1,12 +1,11 @@
 from fastapi import Depends, HTTPException, status
-from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
+from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from jose import JWTError, jwt
 from sqlalchemy.orm import Session
 
 from .database import SessionLocal
 from .models import User
-from .services.auth import SECRET_KEY, ALGORITHM
-
+from .services.auth import ALGORITHM, SECRET_KEY
 
 security = HTTPBearer()
 
@@ -22,7 +21,7 @@ def get_db():
 
 def get_current_user(
     credentials: HTTPAuthorizationCredentials = Depends(security),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
 ):
     credentials_exception = HTTPException(
         status_code=status.HTTP_401_UNAUTHORIZED,
@@ -33,11 +32,7 @@ def get_current_user(
     token = credentials.credentials
 
     try:
-        payload = jwt.decode(
-            token,
-            SECRET_KEY,
-            algorithms=[ALGORITHM]
-        )
+        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
 
         user_id = payload.get("sub")
 
@@ -47,9 +42,7 @@ def get_current_user(
     except (JWTError, ValueError):
         raise credentials_exception
 
-    user = db.query(User).filter(
-        User.id == int(user_id)
-    ).first()
+    user = db.query(User).filter(User.id == int(user_id)).first()
 
     if user is None:
         raise credentials_exception

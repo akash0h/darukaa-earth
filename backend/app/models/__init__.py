@@ -1,4 +1,4 @@
-from .user import User
+from .analytics import Analytics
 from .project import Project
 from .site import Site
-from .analytics import Analytics
+from .user import User

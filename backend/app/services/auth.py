@@ -1,17 +1,16 @@
-from passlib.context import CryptContext
-from jose import jwt
+import os
 from datetime import datetime, timedelta
 
+from dotenv import load_dotenv
+from jose import jwt
+from passlib.context import CryptContext
+
+load_dotenv()
 
 pwd_context = CryptContext(
     schemes=["bcrypt"],
-    deprecated="auto"
+    deprecated="auto",
 )
-
-import os
-from dotenv import load_dotenv
-
-load_dotenv()
 
 SECRET_KEY = os.getenv("SECRET_KEY")
 ALGORITHM = "HS256"
@@ -30,11 +29,11 @@ def create_access_token(user_id: int):
 
     payload = {
         "sub": str(user_id),
-        "exp": expire
+        "exp": expire,
     }
 
     return jwt.encode(
         payload,
         SECRET_KEY,
-        algorithm=ALGORITHM
+        algorithm=ALGORITHM,
     )
