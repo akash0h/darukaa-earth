@@ -16,7 +16,10 @@ Base.metadata.create_all(bind=engine)
 app = FastAPI(title="Darukaa.Earth API", version="1.0.0")
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:5173"],
+    allow_origins=[
+    "http://localhost:5173",
+    "https://darukaa-earth-ply.vercel.app",
+],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -31,6 +34,7 @@ app.include_router(analytics_router)
 @app.get("/")
 def root():
     return {"message": "Darukaa.Earth API is running"}
+
 
 
 @app.get("/db-test")
