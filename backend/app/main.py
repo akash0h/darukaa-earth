@@ -17,9 +17,9 @@ app = FastAPI(title="Darukaa.Earth API", version="1.0.0")
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[
-    "http://localhost:5173",
-    "https://darukaa-earth-ply.vercel.app",
-],
+        "http://localhost:5173",
+        "https://darukaa-earth-rosy.vercel.app",
+    ],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
