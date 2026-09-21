@@ -9,6 +9,7 @@ from .routers.auth import router as auth_router
 from .routers.projects import router as projects_router
 from .routers.sites import router as sites_router
 
+
 # Create database tables
 Base.metadata.create_all(bind=engine)
 
@@ -18,7 +19,7 @@ app.add_middleware(
     CORSMiddleware,
     allow_origins=[
         "http://localhost:5173",
-        "https://darukaa-earth-rosy.vercel.app",
+        "https://darukaa-earth-new.vercel.app",
     ],
     allow_credentials=True,
     allow_methods=["*"],
