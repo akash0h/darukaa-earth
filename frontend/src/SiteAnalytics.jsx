@@ -68,7 +68,7 @@ function SiteAnalytics({ site, onBack }) {
 
     const fetchAnalytics = async () => {
       try {
-        const token = localStorage.getItem("token");
+        const token = localStorage.getItem("access_token");
 
         const response = await axios.get(`${API}/sites/${site.id}/analytics/`, {
           headers: {
