@@ -1,9 +1,7 @@
 import { useEffect, useState } from "react";
 import axios from "axios";
-
 import MapView from "./MapView";
 import SiteAnalytics from "./SiteAnalytics";
-
 const API = import.meta.env.VITE_API_URL || "http://127.0.0.1:8000";
 
 function App() {
@@ -38,7 +36,18 @@ function App() {
       Authorization: `Bearer ${token}`,
     };
   };
+  const passwordRequirements = {
+    minLength: password.length >= 6,
+    uppercase: /[A-Z]/.test(password),
+    lowercase: /[a-z]/.test(password),
+    special: /[^A-Za-z0-9]/.test(password),
+  };
 
+  const passwordValid =
+    passwordRequirements.minLength &&
+    passwordRequirements.uppercase &&
+    passwordRequirements.lowercase &&
+    passwordRequirements.special;
   // LOGIN
   const login = async (event) => {
     event.preventDefault();
@@ -63,6 +72,11 @@ function App() {
   const register = async (event) => {
     event.preventDefault();
     setMessage("");
+
+    if (!passwordValid) {
+      setMessage("Please meet all password requirements.");
+      return;
+    }
 
     try {
       await axios.post(`${API}/auth/register`, {
@@ -215,114 +229,186 @@ function App() {
   }, [loggedIn]);
 
   // AUTH SCREEN
+  // AUTH SCREEN
   if (!loggedIn) {
     return (
-      <div style={pageStyle}>
-        <div style={authCard}>
-          <h1>🌍 Darukaa.Earth</h1>
+      <div style={authPageStyle}>
+        {/* LEFT SIDE */}
+        <div style={authLeftStyle}>
+          <div>
+            <h1 style={authBrandStyle}>🌍 Darukaa.Earth</h1>
 
-          <p style={{ color: "#777" }}>Carbon & Biodiversity Analytics</p>
+            <h2 style={authTaglineStyle}>Carbon & Biodiversity Analytics</h2>
 
-          {showRegister ? (
-            <>
-              <h2>Create Account</h2>
+            <p style={authDescriptionStyle}>
+              A geospatial platform for managing environmental projects,
+              geographical sites and performance analytics.
+            </p>
 
-              <form onSubmit={register}>
-                <input
-                  style={inputStyle}
-                  placeholder="Full name"
-                  value={userName}
-                  onChange={(event) => setUserName(event.target.value)}
-                  required
-                />
+            <div style={authFeaturesStyle}>
+              <p>🌍 Interactive geospatial mapping</p>
+              <p>🌱 Carbon & biodiversity monitoring</p>
+              <p>📊 Site performance analytics</p>
+              <p>📍 Project and site management</p>
+            </div>
+          </div>
+        </div>
 
-                <input
-                  style={inputStyle}
-                  type="email"
-                  placeholder="Email"
-                  value={email}
-                  onChange={(event) => setEmail(event.target.value)}
-                  required
-                />
+        {/* RIGHT SIDE */}
+        <div style={authRightStyle}>
+          <div style={authCard}>
+            {showRegister ? (
+              <>
+                <h2>Create Account</h2>
 
-                <input
-                  style={inputStyle}
-                  type="password"
-                  placeholder="Password"
-                  value={password}
-                  onChange={(event) => setPassword(event.target.value)}
-                  required
-                />
+                <form onSubmit={register}>
+                  <input
+                    style={inputStyle}
+                    placeholder="Full name"
+                    value={userName}
+                    onChange={(event) => setUserName(event.target.value)}
+                    required
+                  />
 
-                <button type="submit" style={primaryButton}>
-                  Create Account
-                </button>
-              </form>
+                  <input
+                    style={inputStyle}
+                    type="email"
+                    placeholder="Email"
+                    value={email}
+                    onChange={(event) => setEmail(event.target.value)}
+                    required
+                  />
 
-              <p>
-                Already have an account?{" "}
-                <button
-                  type="button"
-                  style={linkButton}
-                  onClick={() => {
-                    setShowRegister(false);
-                    setMessage("");
-                  }}
-                >
-                  Login
-                </button>
-              </p>
-            </>
-          ) : (
-            <>
-              <h2>Login</h2>
+                  <input
+                    style={{
+                      ...inputStyle,
+                      border: `2px solid ${
+                        passwordValid ? "#22c55e" : "#ef4444"
+                      }`,
+                      outline: "none",
+                    }}
+                    type="password"
+                    placeholder="Password"
+                    value={password}
+                    onChange={(event) => setPassword(event.target.value)}
+                    required
+                  />
 
-              <form onSubmit={login}>
-                <input
-                  style={inputStyle}
-                  type="email"
-                  placeholder="Email"
-                  value={email}
-                  onChange={(event) => setEmail(event.target.value)}
-                  required
-                />
+                  <div style={passwordRequirementsStyle}>
+                    <p
+                      style={{
+                        color: passwordRequirements.minLength
+                          ? "#22c55e"
+                          : "#ef4444",
+                      }}
+                    >
+                      {passwordRequirements.minLength ? "✓" : "✗"} At least 6
+                      characters
+                    </p>
 
-                <input
-                  style={inputStyle}
-                  type="password"
-                  placeholder="Password"
-                  value={password}
-                  onChange={(event) => setPassword(event.target.value)}
-                  required
-                />
+                    <p
+                      style={{
+                        color: passwordRequirements.uppercase
+                          ? "#22c55e"
+                          : "#ef4444",
+                      }}
+                    >
+                      {passwordRequirements.uppercase ? "✓" : "✗"} One uppercase
+                      letter
+                    </p>
 
-                <button type="submit" style={primaryButton}>
-                  Login
-                </button>
-              </form>
+                    <p
+                      style={{
+                        color: passwordRequirements.lowercase
+                          ? "#22c55e"
+                          : "#ef4444",
+                      }}
+                    >
+                      {passwordRequirements.lowercase ? "✓" : "✗"} One lowercase
+                      letter
+                    </p>
 
-              <p>
-                Don't have an account?{" "}
-                <button
-                  type="button"
-                  style={linkButton}
-                  onClick={() => {
-                    setShowRegister(true);
-                    setMessage("");
-                  }}
-                >
-                  Register
-                </button>
-              </p>
-            </>
-          )}
+                    <p
+                      style={{
+                        color: passwordRequirements.special
+                          ? "#22c55e"
+                          : "#ef4444",
+                      }}
+                    >
+                      {passwordRequirements.special ? "✓" : "✗"} One special
+                      character
+                    </p>
+                  </div>
 
-          {message && <p style={{ marginTop: "20px" }}>{message}</p>}
+                  <button type="submit" style={primaryButton}>
+                    Create Account
+                  </button>
+                </form>
+
+                <p>
+                  Already have an account?{" "}
+                  <button
+                    type="button"
+                    style={linkButton}
+                    onClick={() => {
+                      setShowRegister(false);
+                      setMessage("");
+                    }}
+                  >
+                    Login
+                  </button>
+                </p>
+              </>
+            ) : (
+              <>
+                <h2>Login</h2>
+
+                <form onSubmit={login}>
+                  <input
+                    style={inputStyle}
+                    type="email"
+                    placeholder="Email"
+                    value={email}
+                    onChange={(event) => setEmail(event.target.value)}
+                    required
+                  />
+
+                  <input
+                    style={inputStyle}
+                    type="password"
+                    placeholder="Password"
+                    value={password}
+                    onChange={(event) => setPassword(event.target.value)}
+                    required
+                  />
+
+                  <button type="submit" style={primaryButton}>
+                    Login
+                  </button>
+                </form>
+
+                <p>
+                  Don't have an account?{" "}
+                  <button
+                    type="button"
+                    style={linkButton}
+                    onClick={() => {
+                      setShowRegister(true);
+                      setMessage("");
+                    }}
+                  >
+                    Register
+                  </button>
+                </p>
+              </>
+            )}
+
+            {message && <p style={{ marginTop: "20px" }}>{message}</p>}
+          </div>
         </div>
       </div>
     );
   }
-
   // SITE ANALYTICS
   if (selectedSite) {
     return (
@@ -331,88 +417,126 @@ function App() {
   }
 
   // PROJECT VIEW
+  // PROJECT VIEW
   if (selectedProject) {
     return (
-      <div style={pageStyleWide}>
-        <button
-          type="button"
-          onClick={() => {
-            setSelectedProject(null);
-            setSelectedSite(null);
-            setSites([]);
-            setPolygon(null);
-            setMessage("");
-          }}
-        >
-          ← Back to Projects
-        </button>
+      <div style={projectPageStyle}>
+        <div style={projectTopBar}>
+          <button
+            type="button"
+            onClick={() => {
+              setSelectedProject(null);
+              setSelectedSite(null);
+              setSites([]);
+              setPolygon(null);
+              setMessage("");
+            }}
+            style={backButtonStyle}
+          >
+            ← Back to Projects
+          </button>
 
-        <div style={headerStyle}>
-          <div>
-            <h1>{selectedProject.name}</h1>
-
-            <p>{selectedProject.description}</p>
-          </div>
-
-          <button type="button" onClick={logout}>
+          <button type="button" onClick={logout} style={logoutButtonStyle}>
             Logout
           </button>
         </div>
 
-        <hr />
+        <div style={projectHeaderStyle}>
+          <h1>{selectedProject.name}</h1>
 
-        <h2>Project Map</h2>
+          <p>{selectedProject.description || "Environmental project"}</p>
 
-        <MapView
-          sites={sites}
-          onPolygonCreated={(geometry) => setPolygon(geometry)}
-        />
-
-        <div style={cardStyle}>
-          <h2>Add Site</h2>
-
-          <input
-            style={inputStyle}
-            placeholder="Site name"
-            value={siteName}
-            onChange={(event) => setSiteName(event.target.value)}
-          />
-
-          <button type="button" style={primaryButton} onClick={createSite}>
-            Save Site
-          </button>
-
-          {message && <p>{message}</p>}
+          <span style={projectTypeBadge}>{selectedProject.project_type}</span>
         </div>
 
-        <h2>Project Sites</h2>
+        <div style={projectLayoutStyle}>
+          {/* LEFT: MAP */}
+          <div style={mapPanelStyle}>
+            <div style={sectionHeaderStyle}>
+              <h2>Project Map</h2>
 
-        {sites.length === 0 ? (
-          <p>No sites yet.</p>
-        ) : (
-          sites.map((site) => (
-            <div key={site.id} style={cardStyle}>
-              <h3>{site.name}</h3>
+              <p>Draw a polygon on the map to create a geographical site.</p>
+            </div>
 
-              <p>Site ID: {site.id}</p>
+            <div style={mapWrapperStyle}>
+              <MapView
+                sites={sites}
+                onPolygonCreated={(geometry) => setPolygon(geometry)}
+              />
+            </div>
+          </div>
 
-              <p>
-                Area:{" "}
-                {site.area
-                  ? `${(site.area / 10000).toFixed(2)} hectares`
-                  : "N/A"}
+          {/* RIGHT: PROJECT CONTROLS */}
+          <div style={sidePanelStyle}>
+            {/* ADD SITE */}
+            <div style={sideCardStyle}>
+              <h2>Add Site</h2>
+
+              <p style={mutedTextStyle}>
+                Draw an area on the map, then give the site a name and save it.
               </p>
 
-              <button type="button" onClick={() => setSelectedSite(site)}>
-                View Analytics
+              <input
+                style={inputStyle}
+                placeholder="Site name"
+                value={siteName}
+                onChange={(event) => setSiteName(event.target.value)}
+              />
+
+              <button type="button" style={primaryButton} onClick={createSite}>
+                Save Site
               </button>
+
+              {message && <p style={{ marginTop: "15px" }}>{message}</p>}
             </div>
-          ))
-        )}
+
+            {/* SITES */}
+            <div style={sideCardStyle}>
+              <div style={sitesHeaderStyle}>
+                <h2>Project Sites</h2>
+
+                <span style={siteCountStyle}>{sites.length}</span>
+              </div>
+
+              {sites.length === 0 ? (
+                <div style={emptySitesStyle}>
+                  <p>No sites yet.</p>
+                  <p style={mutedTextStyle}>Draw your first site on the map.</p>
+                </div>
+              ) : (
+                <div>
+                  {sites.map((site) => (
+                    <div key={site.id} style={siteCardStyle}>
+                      <div>
+                        <h3>{site.name}</h3>
+
+                        <p style={mutedTextStyle}>Site ID: {site.id}</p>
+
+                        <p style={mutedTextStyle}>
+                          Area:{" "}
+                          {site.area
+                            ? `${(site.area / 10000).toFixed(2)} hectares`
+                            : "N/A"}
+                        </p>
+                      </div>
+
+                      <button
+                        type="button"
+                        onClick={() => setSelectedSite(site)}
+                        style={analyticsButtonStyle}
+                      >
+                        View Analytics →
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
       </div>
     );
   }
-
   // DASHBOARD
   return (
     <div style={pageStyleWide}>
@@ -485,25 +609,154 @@ function App() {
   );
 }
 
-const pageStyle = {
-  minHeight: "100vh",
-  padding: "40px 20px",
-  fontFamily: "Arial",
-};
+// const pageStyle = {
+//   minHeight: "100vh",
+//   padding: "40px 20px",
+//   fontFamily: "Arial",
+// };
 
 const pageStyleWide = {
-  maxWidth: "1200px",
-  margin: "0 auto",
+  width: "100%",
+  margin: "0",
   padding: "30px",
+  boxSizing: "border-box",
   fontFamily: "Arial",
 };
+const projectPageStyle = {
+  minHeight: "100vh",
+  width: "100%",
+  padding: "25px 35px",
+  fontFamily: "Arial, sans-serif",
+  boxSizing: "border-box",
+};
 
-const authCard = {
-  maxWidth: "450px",
-  margin: "80px auto",
-  padding: "35px",
-  border: "1px solid #ddd",
-  borderRadius: "16px",
+const projectTopBar = {
+  display: "flex",
+  justifyContent: "space-between",
+  alignItems: "center",
+  marginBottom: "20px",
+};
+
+const backButtonStyle = {
+  padding: "10px 16px",
+  borderRadius: "8px",
+  border: "1px solid #555",
+  background: "#222",
+  color: "#fff",
+  cursor: "pointer",
+  fontSize: "14px",
+  fontWeight: "600",
+};
+
+const logoutButtonStyle = {
+  padding: "10px 18px",
+  borderRadius: "8px",
+  border: "1px solid #555",
+  background: "#222",
+  color: "#fff",
+  cursor: "pointer",
+};
+
+const projectHeaderStyle = {
+  marginBottom: "25px",
+};
+
+const projectTypeBadge = {
+  display: "inline-block",
+  padding: "6px 12px",
+  borderRadius: "20px",
+  background: "#333",
+  fontSize: "13px",
+  marginTop: "5px",
+};
+
+const projectLayoutStyle = {
+  display: "grid",
+  gridTemplateColumns: "1fr 1fr",
+  gap: "25px",
+  alignItems: "stretch",
+  width: "100%",
+};
+
+const mapPanelStyle = {
+  border: "1px solid #444",
+  borderRadius: "14px",
+  padding: "18px",
+  minWidth: 0,
+  width: "100%",
+  boxSizing: "border-box",
+};
+
+const sectionHeaderStyle = {
+  marginBottom: "15px",
+};
+
+const mapWrapperStyle = {
+  width: "100%",
+  height: "calc(100vh - 250px)",
+  minHeight: "600px",
+  borderRadius: "12px",
+  overflow: "hidden",
+};
+
+const sidePanelStyle = {
+  display: "flex",
+  flexDirection: "column",
+  gap: "20px",
+  minWidth: 0,
+  width: "100%",
+};
+
+const sideCardStyle = {
+  border: "1px solid #444",
+  borderRadius: "14px",
+  padding: "22px",
+};
+
+const mutedTextStyle = {
+  color: "#999",
+  fontSize: "14px",
+};
+
+const sitesHeaderStyle = {
+  display: "flex",
+  justifyContent: "space-between",
+  alignItems: "center",
+  marginBottom: "15px",
+};
+
+const siteCountStyle = {
+  minWidth: "28px",
+  height: "28px",
+  borderRadius: "50%",
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "center",
+  background: "#333",
+  fontSize: "13px",
+};
+
+const siteCardStyle = {
+  border: "1px solid #444",
+  borderRadius: "10px",
+  padding: "15px",
+  marginBottom: "12px",
+};
+
+const analyticsButtonStyle = {
+  width: "100%",
+  padding: "10px",
+  borderRadius: "7px",
+  border: "1px solid #555",
+  background: "#333",
+  color: "#fff",
+  cursor: "pointer",
+  fontWeight: "600",
+};
+
+const emptySitesStyle = {
+  padding: "20px 5px",
+  textAlign: "center",
 };
 
 const cardStyle = {
@@ -528,11 +781,74 @@ const inputStyle = {
   boxSizing: "border-box",
 };
 
+const passwordRequirementsStyle = {
+  marginTop: "-8px",
+  marginBottom: "15px",
+  fontSize: "13px",
+  textAlign: "left",
+};
+
 const primaryButton = {
   padding: "12px 20px",
   cursor: "pointer",
 };
 
+const authPageStyle = {
+  minHeight: "100vh",
+  width: "100%",
+  display: "grid",
+  gridTemplateColumns: "1fr 1fr",
+};
+
+const authLeftStyle = {
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "center",
+  padding: "70px",
+  boxSizing: "border-box",
+};
+
+const authRightStyle = {
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "center",
+  padding: "50px",
+  boxSizing: "border-box",
+};
+
+const authBrandStyle = {
+  fontSize: "52px",
+  marginBottom: "15px",
+};
+
+const authTaglineStyle = {
+  fontSize: "26px",
+  fontWeight: "400",
+  color: "#aaa",
+};
+
+const authDescriptionStyle = {
+  maxWidth: "500px",
+  fontSize: "18px",
+  lineHeight: "1.7",
+  color: "#999",
+  marginTop: "25px",
+};
+
+const authFeaturesStyle = {
+  marginTop: "35px",
+  color: "#aaa",
+  lineHeight: "2",
+};
+
+const authCard = {
+  width: "100%",
+  maxWidth: "450px",
+  padding: "40px",
+  border: "1px solid #555",
+  borderRadius: "16px",
+  boxSizing: "border-box",
+};
 const linkButton = {
   border: "none",
   background: "none",

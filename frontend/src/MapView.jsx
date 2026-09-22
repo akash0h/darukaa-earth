@@ -137,8 +137,8 @@ function MapView({ sites = [], onPolygonCreated }) {
       ref={mapContainer}
       style={{
         width: "100%",
-        height: "500px",
-        minHeight: "500px",
+        height: "100%",
+        minHeight: "600px",
         borderRadius: "12px",
       }}
     />
