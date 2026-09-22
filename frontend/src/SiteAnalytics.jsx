@@ -28,7 +28,8 @@ const API = import.meta.env.VITE_API_URL || "http://127.0.0.1:8000";
 
 function SiteAnalytics({ site, onBack }) {
   const [analytics, setAnalytics] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const [loadedSiteId, setLoadedSiteId] = useState(null);
+
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
   const [message, setMessage] = useState("");
@@ -38,57 +39,37 @@ function SiteAnalytics({ site, onBack }) {
   const [biodiversityValue, setBiodiversityValue] = useState("");
   const [performanceValue, setPerformanceValue] = useState("");
 
-  const loadAnalytics = async () => {
-    try {
-      setLoading(true);
-      setError("");
-
-      const token = localStorage.getItem("access_token");
-
-      const response = await axios.get(`${API}/sites/${site.id}/analytics/`, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      });
-
-      setAnalytics(response.data);
-    } catch (error) {
-      console.error("Analytics loading error:", error);
-
-      setError(
-        error.response?.data?.detail || "Unable to load analytics data."
-      );
-    } finally {
-      setLoading(false);
-    }
-  };
-
   useEffect(() => {
     let cancelled = false;
 
-    const fetchAnalytics = async () => {
-      try {
-        const token = localStorage.getItem("access_token");
+    const token = localStorage.getItem("access_token");
 
-        const response = await axios.get(`${API}/sites/${site.id}/analytics/`, {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        });
+    axios
+      .get(`${API}/sites/${site.id}/analytics/`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      })
+      .then((response) => {
+        if (cancelled) return;
 
-        if (!cancelled) {
-          setAnalytics(response.data);
-        }
-      } catch (error) {
-        console.error("Failed to load analytics:", error);
+        setAnalytics(response.data);
+        setError("");
+        setMessage("");
+        setLoadedSiteId(site.id);
+      })
+      .catch((requestError) => {
+        if (cancelled) return;
 
-        if (!cancelled) {
-          setAnalytics([]);
-        }
-      }
-    };
+        console.error("Analytics loading error:", requestError);
 
-    fetchAnalytics();
+        setAnalytics([]);
+        setError(
+          requestError.response?.data?.detail ||
+            "Unable to load analytics data."
+        );
+        setLoadedSiteId(site.id);
+      });
 
     return () => {
       cancelled = true;
@@ -98,75 +79,52 @@ function SiteAnalytics({ site, onBack }) {
   const addAnalytics = async (event) => {
     event.preventDefault();
 
+    setSaving(true);
     setError("");
     setMessage("");
 
-    if (!date) {
-      setError("Please select a date.");
-      return;
-    }
-
-    const carbon = Number(carbonValue);
-    const biodiversity = Number(biodiversityValue);
-    const performance = Number(performanceValue);
-
-    if (
-      Number.isNaN(carbon) ||
-      Number.isNaN(biodiversity) ||
-      Number.isNaN(performance)
-    ) {
-      setError("Please enter valid numbers.");
-      return;
-    }
-
-    if (
-      carbon < 0 ||
-      carbon > 100 ||
-      biodiversity < 0 ||
-      biodiversity > 100 ||
-      performance < 0 ||
-      performance > 100
-    ) {
-      setError("Values must be between 0 and 100.");
-      return;
-    }
+    const token = localStorage.getItem("access_token");
 
     try {
-      setSaving(true);
-
-      const token = localStorage.getItem("access_token");
-
-      await axios.post(
+      const response = await axios.post(
         `${API}/sites/${site.id}/analytics/`,
         {
           date,
-          carbon_value: carbon,
-          biodiversity_value: biodiversity,
-          performance_value: performance,
+          carbon_value: Number(carbonValue),
+          biodiversity_value: Number(biodiversityValue),
+          performance_value: Number(performanceValue),
         },
         {
           headers: {
             Authorization: `Bearer ${token}`,
+            "Content-Type": "application/json",
           },
         }
+      );
+
+      setAnalytics((current) =>
+        [...current, response.data].sort(
+          (a, b) => new Date(a.date) - new Date(b.date)
+        )
       );
 
       setDate("");
       setCarbonValue("");
       setBiodiversityValue("");
       setPerformanceValue("");
+      setMessage("Analytics added successfully.");
+    } catch (requestError) {
+      console.error("Analytics save error:", requestError);
 
-      setMessage("Analytics added successfully!");
-
-      await loadAnalytics();
-    } catch (error) {
-      console.error("Analytics creation error:", error);
-
-      setError(error.response?.data?.detail || "Could not add analytics.");
+      setError(
+        requestError.response?.data?.detail || "Unable to save analytics data."
+      );
     } finally {
       setSaving(false);
     }
   };
+
+  const loading = loadedSiteId !== site.id;
 
   if (loading) {
     return (
@@ -182,7 +140,6 @@ function SiteAnalytics({ site, onBack }) {
 
   const chartData = {
     labels: analytics.map((item) => item.date),
-
     datasets: [
       {
         label: "Carbon",
@@ -211,17 +168,14 @@ function SiteAnalytics({ site, onBack }) {
   const chartOptions = {
     responsive: true,
     maintainAspectRatio: false,
-
     interaction: {
       mode: "index",
       intersect: false,
     },
-
     plugins: {
       legend: {
         position: "top",
       },
-
       title: {
         display: true,
         text: "Site Performance Over Time",
@@ -229,18 +183,15 @@ function SiteAnalytics({ site, onBack }) {
           size: 18,
         },
       },
-
       tooltip: {
         enabled: true,
       },
     },
-
     scales: {
       y: {
         beginAtZero: true,
         max: 100,
       },
-
       x: {
         ticks: {
           maxRotation: 45,
@@ -278,7 +229,6 @@ function SiteAnalytics({ site, onBack }) {
 
       <h2>Analytics</h2>
 
-      {/* ADD ANALYTICS */}
       <div style={formCardStyle}>
         <h3>Add Analytics Data</h3>
 
@@ -286,7 +236,6 @@ function SiteAnalytics({ site, onBack }) {
           <div style={formGridStyle}>
             <div>
               <label style={labelStyle}>Date</label>
-
               <input
                 type="date"
                 value={date}
@@ -298,7 +247,6 @@ function SiteAnalytics({ site, onBack }) {
 
             <div>
               <label style={labelStyle}>Carbon</label>
-
               <input
                 type="number"
                 min="0"
@@ -314,7 +262,6 @@ function SiteAnalytics({ site, onBack }) {
 
             <div>
               <label style={labelStyle}>Biodiversity</label>
-
               <input
                 type="number"
                 min="0"
@@ -330,7 +277,6 @@ function SiteAnalytics({ site, onBack }) {
 
             <div>
               <label style={labelStyle}>Performance</label>
-
               <input
                 type="number"
                 min="0"
@@ -351,36 +297,29 @@ function SiteAnalytics({ site, onBack }) {
         </form>
 
         {message && <p style={successStyle}>{message}</p>}
-
         {error && <p style={errorStyle}>{error}</p>}
       </div>
 
-      {/* CHART / EMPTY STATE */}
       {analytics.length === 0 ? (
         <div style={emptyStyle}>
           <h3>No analytics data available</h3>
-
           <p>Add your first analytics record above to generate the chart.</p>
         </div>
       ) : (
         <>
-          {/* CHART */}
           <div style={chartCardStyle}>
             <div style={chartContainerStyle}>
               <Line data={chartData} options={chartOptions} />
             </div>
           </div>
 
-          {/* METRICS */}
           {latest && (
             <div style={metricsGridStyle}>
               <MetricCard title="Carbon" value={latest.carbon_value} />
-
               <MetricCard
                 title="Biodiversity"
                 value={latest.biodiversity_value}
               />
-
               <MetricCard
                 title="Performance"
                 value={latest.performance_value}
@@ -388,7 +327,6 @@ function SiteAnalytics({ site, onBack }) {
             </div>
           )}
 
-          {/* TABLE */}
           <h2 style={{ marginTop: "45px" }}>Historical Data</h2>
 
           <div style={tableWrapperStyle}>
@@ -396,11 +334,8 @@ function SiteAnalytics({ site, onBack }) {
               <thead>
                 <tr>
                   <th style={cellStyle}>Date</th>
-
                   <th style={cellStyle}>Carbon</th>
-
                   <th style={cellStyle}>Biodiversity</th>
-
                   <th style={cellStyle}>Performance</th>
                 </tr>
               </thead>
@@ -409,11 +344,8 @@ function SiteAnalytics({ site, onBack }) {
                 {analytics.map((item) => (
                   <tr key={item.id}>
                     <td style={cellStyle}>{item.date}</td>
-
                     <td style={cellStyle}>{item.carbon_value}</td>
-
                     <td style={cellStyle}>{item.biodiversity_value}</td>
-
                     <td style={cellStyle}>{item.performance_value}</td>
                   </tr>
                 ))}
@@ -430,7 +362,6 @@ function MetricCard({ title, value }) {
   return (
     <div style={metricCardStyle}>
       <div style={metricTitleStyle}>{title}</div>
-
       <div style={metricValueStyle}>{value}</div>
     </div>
   );
